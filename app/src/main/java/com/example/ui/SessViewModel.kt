@@ -529,6 +529,9 @@ class SessViewModel(application: Application) : AndroidViewModel(application) {
                 isLoading = progress < 100
             )
         }
+        if (progress >= 70) {
+            webViewRef?.evaluateJavascript(SessScriptInjector.getCompatibilityAndMenuFixScript(), null)
+        }
     }
 
     fun onTitleReceived(title: String) {

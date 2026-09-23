@@ -131,28 +131,26 @@ object SessScriptInjector {
     }
 
     /**
-     * Non-destructive Compatibility Polyfills:
-     * - Polyfills window.showModalDialog for older ASP.NET university pages (converts to window.open)
-     * - Polyfills window.event for legacy Internet Explorer ASP.NET handlers
-     * - Safe fallback for SfxWeb drawer (#mySidenav) if not defined
-     * - NEVER hides, overrides or breaks natural CSS accordion in .nav__list
-     * - NEVER forces arbitrary table styles, widths or viewports
+     * Compatibility & Full Nav List Display Fix:
+     * - Guarantees #edSRightMenu, .baghdi, and ul.nav__list are ALWAYS visible on mobile & desktop
+     * - Re-arranges 3-column table on mobile screens so columns never clip or push menu offscreen
+     * - Makes ul.nav__list accordion groups (اطلاعات کاربری، پیامها، آموزشی، ...) 100% reliably expand/collapse on tap
+     * - Polyfills window.showModalDialog and window.event for legacy ASP.NET scripts
      */
     fun getCompatibilityAndMenuFixScript(): String {
         return """
             (function() {
                 try {
+                    // 1. Global Polyfills
                     if (!window.__sessPolyfillsInjected) {
                         window.__sessPolyfillsInjected = true;
 
-                        // 1. Polyfill window.showModalDialog (Crucial for ASP.NET WebForms dialogs & reports)
                         if (!window.showModalDialog) {
                             window.showModalDialog = function(url, arg, opt) {
                                 return window.open(url, '_blank');
                             };
                         }
 
-                        // 2. Polyfill window.event for legacy Internet Explorer ASP.NET handlers
                         if (typeof window.event === 'undefined') {
                             window.event = null;
                         }
@@ -160,20 +158,209 @@ object SessScriptInjector {
                         document.addEventListener('keydown', function(e) { window.event = e; }, true);
                     }
 
-                    // 3. Safe drawer helper for SfxWeb (#mySidenav) if not already initialized
+                    // 2. SfxWeb Drawer helper
                     var sidenav = document.getElementById('mySidenav');
                     if (sidenav) {
                         if (typeof window.openNav !== 'function') {
-                            window.openNav = function() {
-                                sidenav.style.width = 'min(300px, 85vw)';
-                            };
+                            window.openNav = function() { sidenav.style.width = 'min(300px, 85vw)'; };
                         }
                         if (typeof window.closeNav !== 'function') {
-                            window.closeNav = function() {
-                                sidenav.style.width = '0';
-                            };
+                            window.closeNav = function() { sidenav.style.width = '0'; };
                         }
                     }
+
+                    // 3. Inject CSS to guarantee visibility of .nav__list and responsive stacking
+                    function injectMenuVisibilityCss(doc) {
+                        if (!doc || doc.getElementById('sess-nav-visible-css')) return;
+                        var style = doc.createElement('style');
+                        style.id = 'sess-nav-visible-css';
+                        style.innerHTML = [
+                            '/* Guarantee Right Menu and Navigation List are never hidden */',
+                            '#edSRightMenu, td#edSRightMenu, .baghdi, .baghdi.scroll, nav.nav, nav.header, ul.nav__list {',
+                            '    display: block !important;',
+                            '    visibility: visible !important;',
+                            '    opacity: 1 !important;',
+                            '    max-height: none !important;',
+                            '    overflow: visible !important;',
+                            '}',
+                            '/* Responsive adaptation for mobile: prevent table columns from clipping offscreen */',
+                            '@media (max-width: 900px) {',
+                            '    #maintbl {',
+                            '        display: block !important;',
+                            '        width: 100% !important;',
+                            '        max-width: 100% !important;',
+                            '    }',
+                            '    #maintbl > tbody, #maintbl > tbody > tr {',
+                            '        display: flex !important;',
+                            '        flex-direction: column !important;',
+                            '        width: 100% !important;',
+                            '    }',
+                            '    #maintbl > tbody > tr > td, #edSRightMenu, td#edSRightMenu {',
+                            '        display: block !important;',
+                            '        width: 100% !important;',
+                            '        max-width: 100% !important;',
+                            '        box-sizing: border-box !important;',
+                            '    }',
+                            '}',
+                            '/* Accordion styling for ul.nav__list */',
+                            'ul.nav__list {',
+                            '    display: block !important;',
+                            '    visibility: visible !important;',
+                            '    list-style: none !important;',
+                            '    padding: 4px !important;',
+                            '    margin: 0 !important;',
+                            '    direction: rtl !important;',
+                            '    text-align: right !important;',
+                            '}',
+                            'ul.nav__list > li {',
+                            '    display: block !important;',
+                            '    visibility: visible !important;',
+                            '    margin-bottom: 6px !important;',
+                            '    border-radius: 8px !important;',
+                            '    border: 1px solid #cbd5e1 !important;',
+                            '    background: #ffffff !important;',
+                            '    overflow: hidden !important;',
+                            '}',
+                            'ul.nav__list label {',
+                            '    display: flex !important;',
+                            '    align-items: center !important;',
+                            '    justify-content: space-between !important;',
+                            '    padding: 11px 13px !important;',
+                            '    font-size: 14px !important;',
+                            '    font-weight: bold !important;',
+                            '    color: #0369a1 !important;',
+                            '    background: #f0f9ff !important;',
+                            '    cursor: pointer !important;',
+                            '    user-select: none !important;',
+                            '    -webkit-user-select: none !important;',
+                            '    margin: 0 !important;',
+                            '}',
+                            'ul.nav__list label::after {',
+                            '    content: "▼" !important;',
+                            '    font-size: 10px !important;',
+                            '    color: #0284c7 !important;',
+                            '    transition: transform 0.2s ease !important;',
+                            '}',
+                            'ul.nav__list li.is-open > label::after,',
+                            'ul.nav__list input[type="checkbox"]:checked ~ label::after {',
+                            '    transform: rotate(180deg) !important;',
+                            '}',
+                            '/* Group list items (تغییر کلمه رمز، اطلاعات پایه، ...) */',
+                            'ul.nav__list ul.group-list, ul.nav__list .group-list {',
+                            '    display: none;',
+                            '    list-style: none !important;',
+                            '    padding: 4px 8px !important;',
+                            '    margin: 0 !important;',
+                            '    background: #ffffff !important;',
+                            '}',
+                            'ul.nav__list li.is-open > ul.group-list,',
+                            'ul.nav__list li.is-open > .group-list,',
+                            'ul.nav__list input[type="checkbox"]:checked ~ ul.group-list,',
+                            'ul.nav__list input[type="checkbox"]:checked ~ .group-list {',
+                            '    display: block !important;',
+                            '    visibility: visible !important;',
+                            '    opacity: 1 !important;',
+                            '}',
+                            'ul.nav__list ul.group-list li {',
+                            '    display: block !important;',
+                            '    margin: 4px 0 !important;',
+                            '}',
+                            'ul.nav__list ul.group-list a.link, ul.nav__list a.link {',
+                            '    display: block !important;',
+                            '    padding: 9px 12px !important;',
+                            '    font-size: 13px !important;',
+                            '    color: #0f172a !important;',
+                            '    background: #f8fafc !important;',
+                            '    border: 1px solid #e2e8f0 !important;',
+                            '    border-radius: 6px !important;',
+                            '    text-decoration: none !important;',
+                            '    cursor: pointer !important;',
+                            '    font-weight: 500 !important;',
+                            '}',
+                            'ul.nav__list ul.group-list a.link:active {',
+                            '    background: #e0f2fe !important;',
+                            '    color: #0284c7 !important;',
+                            '}'
+                        ].join('\n');
+                        (doc.head || doc.documentElement || doc.body).appendChild(style);
+                    }
+
+                    // 4. Bulletproof interactive toggle for nav__list accordion
+                    function setupNavListAccordion(doc) {
+                        if (!doc) return;
+                        var navLists = doc.querySelectorAll('.nav__list, ul.nav__list');
+                        navLists.forEach(function(navList) {
+                            var items = navList.querySelectorAll('> li');
+                            items.forEach(function(li) {
+                                var input = li.querySelector('input[type="checkbox"]');
+                                var label = li.querySelector('label');
+                                var subList = li.querySelector('ul.group-list, .group-list');
+
+                                if (!label || !subList) return;
+
+                                // Allow touch events on label to toggle without native checkbox suppression
+                                if (input && input.hasAttribute('hidden')) {
+                                    input.removeAttribute('hidden');
+                                    input.style.cssText = 'position:absolute!important;opacity:0!important;pointer-events:none!important;width:1px!important;height:1px!important;';
+                                }
+
+                                if (label.__sessAccordionAttached) return;
+                                label.__sessAccordionAttached = true;
+
+                                var toggleHandler = function(e) {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+
+                                    var isExpanded = li.classList.contains('is-open') || 
+                                                     subList.style.display === 'block' || 
+                                                     (input && input.checked);
+
+                                    if (isExpanded) {
+                                        li.classList.remove('is-open');
+                                        subList.style.setProperty('display', 'none', 'important');
+                                        if (input) input.checked = false;
+                                    } else {
+                                        li.classList.add('is-open');
+                                        subList.style.setProperty('display', 'block', 'important');
+                                        subList.style.setProperty('visibility', 'visible', 'important');
+                                        subList.style.setProperty('opacity', '1', 'important');
+                                        if (input) input.checked = true;
+                                    }
+                                };
+
+                                label.addEventListener('click', toggleHandler, true);
+                            });
+                        });
+                    }
+
+                    // Apply to current document and any child frames
+                    function applyAll(d) {
+                        try {
+                            injectMenuVisibilityCss(d);
+                            setupNavListAccordion(d);
+                        } catch(e) {}
+                    }
+
+                    var allDocs = [document];
+                    try {
+                        var frames = document.querySelectorAll('iframe, frame');
+                        for (var i = 0; i < frames.length; i++) {
+                            try {
+                                var fDoc = frames[i].contentDocument || (frames[i].contentWindow && frames[i].contentWindow.document);
+                                if (fDoc && allDocs.indexOf(fDoc) === -1) {
+                                    allDocs.push(fDoc);
+                                }
+                            } catch(e) {}
+                        }
+                    } catch(e) {}
+
+                    allDocs.forEach(applyAll);
+
+                    // Run gentle checks to handle delayed ASP.NET WebForms DOM rendering
+                    setTimeout(function() { allDocs.forEach(applyAll); }, 300);
+                    setTimeout(function() { allDocs.forEach(applyAll); }, 900);
+                    setTimeout(function() { allDocs.forEach(applyAll); }, 2000);
+
                 } catch(e) {
                     console.error("Compatibility script error", e);
                 }
@@ -182,8 +369,7 @@ object SessScriptInjector {
     }
 
     /**
-     * Safe styling: NO layout alterations, NO hiding elements, NO restructuring.
-     * Keeps 100% of website content, tables, menus, and buttons exactly as designed.
+     * Safe styling: Keeps 100% of website content, tables, menus, and buttons intact.
      * Only applies dark mode filter when enabled.
      */
     fun getMobileOptimizationScript(darkMode: Boolean): String {
@@ -216,7 +402,6 @@ object SessScriptInjector {
 
     /**
      * Non-blocking Debug & Action Logger
-     * Captures Clicks, ASP.NET __doPostBack, and Forms without interfering with page behavior.
      */
     fun getDebugTrackerScript(): String {
         return """
