@@ -149,24 +149,58 @@ fun SessHomeDashboard(
             }
         }
 
-        // 3. Grid of Shortcuts (Paired in Rows of 2 for optimal responsiveness)
-        val chunkedShortcuts = customShortcuts.chunked(2)
-        items(chunkedShortcuts) { rowItems ->
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                for (shortcut in rowItems) {
-                    ShortcutCard(
-                        shortcut = shortcut,
-                        onExecute = { onExecuteShortcut(shortcut) },
-                        onEdit = { onEditShortcut(shortcut) },
-                        modifier = Modifier.weight(1f)
-                    )
+        // 3. Grid of Shortcuts or Empty Prompt
+        if (customShortcuts.isEmpty()) {
+            item {
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { onAddShortcut() },
+                    shape = RoundedCornerShape(14.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Add,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "افزودن میانبر جدید (کلیک کنید)",
+                            fontWeight = FontWeight.Medium,
+                            fontSize = 13.sp,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
                 }
-                if (rowItems.size == 1) {
-                    // Empty space filler if odd number
-                    Spacer(modifier = Modifier.weight(1f))
+            }
+        } else {
+            val chunkedShortcuts = customShortcuts.chunked(2)
+            items(chunkedShortcuts) { rowItems ->
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    for (shortcut in rowItems) {
+                        ShortcutCard(
+                            shortcut = shortcut,
+                            onExecute = { onExecuteShortcut(shortcut) },
+                            onEdit = { onEditShortcut(shortcut) },
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                    if (rowItems.size == 1) {
+                        Spacer(modifier = Modifier.weight(1f))
+                    }
                 }
             }
         }

@@ -47,15 +47,7 @@ class SessViewModel(application: Application) : AndroidViewModel(application) {
 
     private var lastUserActionScript: String? = null
 
-    val quickLinks = listOf(
-        QuickLink(
-            title = "سامانه سس (صفحه اصلی)",
-            description = "ورود به پورتال اصلی سس دانشگاه شیراز",
-            url = "https://sess.shirazu.ac.ir",
-            category = "اصلی",
-            iconName = "home"
-        )
-    )
+    val quickLinks: List<QuickLink> = emptyList()
 
     val sessMenuCategories: List<SessMenuCategory> = listOf(
         SessMenuCategory(

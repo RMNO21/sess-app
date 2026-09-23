@@ -101,27 +101,18 @@ class PreferencesManager(context: Context) {
     }
 
     fun loadCustomShortcuts(): List<CustomShortcut> {
-        val json = prefs.getString(KEY_CUSTOM_SHORTCUTS, null)
-        if (json == null) {
-            val initial = listOf(
-                CustomShortcut(
-                    id = "default_sess_home",
-                    name = "سامانه سس (صفحه اصلی)",
-                    targetUrl = "https://sess.shirazu.ac.ir",
-                    actionScript = ""
-                )
-            )
-            saveCustomShortcuts(initial)
-            return initial
-        }
+        val json = prefs.getString(KEY_CUSTOM_SHORTCUTS, null) ?: return emptyList()
         return try {
             val array = JSONArray(json)
             val list = mutableListOf<CustomShortcut>()
             for (i in 0 until array.length()) {
                 val obj = array.getJSONObject(i)
+                val id = obj.optString("id", "")
+                // Exclude any old default shortcuts
+                if (id == "default_sess_home" || id.startsWith("default_")) continue
                 list.add(
                     CustomShortcut(
-                        id = obj.optString("id", java.util.UUID.randomUUID().toString()),
+                        id = if (id.isNotBlank()) id else java.util.UUID.randomUUID().toString(),
                         name = obj.getString("name"),
                         targetUrl = obj.getString("targetUrl"),
                         actionScript = obj.optString("actionScript", ""),
@@ -129,23 +120,14 @@ class PreferencesManager(context: Context) {
                     )
                 )
             }
-            if (list.isEmpty()) {
-                val initial = listOf(
-                    CustomShortcut(
-                        id = "default_sess_home",
-                        name = "سامانه سس (صفحه اصلی)",
-                        targetUrl = "https://sess.shirazu.ac.ir",
-                        actionScript = ""
-                    )
-                )
-                saveCustomShortcuts(initial)
-                initial
-            } else {
-                list
-            }
+            list
         } catch (e: Exception) {
             emptyList()
         }
+    }
+
+    fun clearAllCustomShortcuts() {
+        prefs.edit().remove(KEY_CUSTOM_SHORTCUTS).apply()
     }
 
     fun saveCustomShortcuts(shortcuts: List<CustomShortcut>) {

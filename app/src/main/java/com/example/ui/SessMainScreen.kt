@@ -156,29 +156,6 @@ fun SessMainScreen(
     Scaffold(
         modifier = modifier.fillMaxSize(),
         snackbarHost = { SnackbarHost(snackbarHostState) },
-        topBar = {
-            SessTopAppBar(
-                sessionState = sessionState,
-                settings = settings,
-                credentials = credentials,
-                logCount = debugLogs.size,
-                onRefresh = { webViewInstance?.reload() },
-                onResetZoom = { webViewInstance?.let { viewModel.resetZoom(it) } },
-                onOpenDebugConsole = { showDebugConsole = true },
-                onBypassCaptcha = {
-                    webViewInstance?.let { viewModel.bypassCaptchaAndResetSession(it) }
-                },
-                onOpenSessionInfo = { showSessionInfoDialog = true },
-                onOpenCredentials = { showCredentialsDialog = true },
-                onOpenSettings = { showSettingsSheet = true },
-                onToggleDarkMode = { viewModel.toggleDarkMode() },
-                onToggleDesktop = {
-                    webViewInstance?.let { viewModel.toggleDesktopMode(it) }
-                },
-                onZoomIn = { webViewInstance?.let { viewModel.zoomIn(it) } },
-                onZoomOut = { webViewInstance?.let { viewModel.zoomOut(it) } }
-            )
-        },
         bottomBar = {
             SessBottomBar(
                 sessionState = sessionState,
@@ -191,7 +168,10 @@ fun SessMainScreen(
                     webViewInstance?.let { if (it.canGoForward()) it.goForward() }
                 },
                 onHome = {
-                    viewModel.toggleDashboard()
+                    viewModel.showDashboard()
+                },
+                onOpenBrowser = {
+                    viewModel.hideDashboard()
                 },
                 onRefresh = {
                     webViewInstance?.reload()
@@ -205,7 +185,10 @@ fun SessMainScreen(
                 onZoomOut = {
                     webViewInstance?.let { viewModel.zoomOut(it) }
                 },
-                onOpenShortcuts = { viewModel.showDashboard() },
+                onOpenShortcuts = {
+                    editingShortcut = null
+                    showEditShortcutDialog = true
+                },
                 onBypassCaptcha = {
                     webViewInstance?.let { viewModel.bypassCaptchaAndResetSession(it) }
                 },
@@ -378,36 +361,11 @@ fun SessMainScreen(
                             loadUrl(sessionState.currentUrl)
                         }
                     },
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .testTag("sess_webview")
-                )
-
-                // Page Loading Indicator
-                if (sessionState.isLoading && sessionState.pageProgress < 75 && !sessionState.isAutoLoginInProgress) {
-                    Surface(
-                        modifier = Modifier
-                            .align(Alignment.Center)
-                            .size(60.dp),
-                        shape = RoundedCornerShape(16.dp),
-                        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.92f),
-                        shadowElevation = 6.dp
-                    ) {
-                        Box(contentAlignment = Alignment.Center) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(32.dp),
-                                strokeWidth = 3.dp,
-                                color = MaterialTheme.colorScheme.primary
-                            )
-                        }
-                    }
-                }
-
-                // Fast Auto-Login Splash Screen Overlay
-                SessSplashScreen(
-                    isVisible = sessionState.isAutoLoginInProgress,
-                    credentials = credentials,
-                    onCancel = { viewModel.cancelAutoLoginSplash() }
+                    update = { webView ->
+                        val shouldShow = !sessionState.isDashboardVisible
+                        webView.visibility = if (shouldShow) android.view.View.VISIBLE else android.view.View.GONE
+                    },
+                    modifier = if (!sessionState.isDashboardVisible) Modifier.fillMaxSize().testTag("sess_webview") else Modifier.size(0.dp)
                 )
 
                 // Native Launch Dashboard
@@ -434,6 +392,33 @@ fun SessMainScreen(
                             viewModel.hideDashboard()
                         },
                         modifier = Modifier.fillMaxSize()
+                    )
+                } else {
+                    // Page Loading Indicator
+                    if (sessionState.isLoading && sessionState.pageProgress < 75 && !sessionState.isAutoLoginInProgress) {
+                        Surface(
+                            modifier = Modifier
+                                .align(Alignment.Center)
+                                .size(60.dp),
+                            shape = RoundedCornerShape(16.dp),
+                            color = MaterialTheme.colorScheme.surface.copy(alpha = 0.92f),
+                            shadowElevation = 6.dp
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(32.dp),
+                                    strokeWidth = 3.dp,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                        }
+                    }
+
+                    // Fast Auto-Login Splash Screen Overlay
+                    SessSplashScreen(
+                        isVisible = sessionState.isAutoLoginInProgress,
+                        credentials = credentials,
+                        onCancel = { viewModel.cancelAutoLoginSplash() }
                     )
                 }
             }

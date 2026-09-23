@@ -18,12 +18,15 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.BugReport
 import androidx.compose.material.icons.filled.CleaningServices
 import androidx.compose.material.icons.filled.DarkMode
+import androidx.compose.material.icons.filled.Dashboard
 import androidx.compose.material.icons.filled.DesktopWindows
 import androidx.compose.material.icons.filled.GridView
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.LockOpen
 import androidx.compose.material.icons.filled.MoreVert
@@ -47,6 +50,8 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
@@ -70,6 +75,7 @@ import com.example.model.AppSettings
 import com.example.model.SessionState
 import com.example.model.UserCredentials
 import com.example.ui.theme.ShirazuError
+import com.example.ui.theme.ShirazuGold
 import com.example.ui.theme.ShirazuPrimary
 import com.example.ui.theme.ShirazuSuccess
 
@@ -82,6 +88,7 @@ fun SessBottomBar(
     onBack: () -> Unit,
     onForward: () -> Unit,
     onHome: () -> Unit,
+    onOpenBrowser: () -> Unit = {},
     onRefresh: () -> Unit,
     onResetZoom: () -> Unit,
     onZoomIn: () -> Unit,
@@ -98,106 +105,74 @@ fun SessBottomBar(
 ) {
     var showToolsSheet by remember { mutableStateOf(false) }
 
-    Surface(
+    NavigationBar(
         modifier = modifier.fillMaxWidth(),
-        shadowElevation = 10.dp,
-        tonalElevation = 3.dp,
-        color = MaterialTheme.colorScheme.surface
+        containerColor = MaterialTheme.colorScheme.surface,
+        tonalElevation = 8.dp
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 4.dp, vertical = 4.dp),
-            horizontalArrangement = Arrangement.SpaceAround,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            // 1. Back
-            IconButton(
-                onClick = onBack,
+        // 1. Dashboard / Home
+        NavigationBarItem(
+            selected = sessionState.isDashboardVisible,
+            onClick = onHome,
+            icon = {
+                Icon(
+                    imageVector = Icons.Default.Dashboard,
+                    contentDescription = "پیشخوان",
+                    tint = if (sessionState.isDashboardVisible) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            },
+            label = { Text("پیشخوان", fontSize = 11.sp, fontWeight = if (sessionState.isDashboardVisible) FontWeight.Bold else FontWeight.Normal) }
+        )
+
+        // 2. Quick Shortcuts (Option requested in bottom bar)
+        NavigationBarItem(
+            selected = false,
+            onClick = onOpenShortcuts,
+            icon = {
+                Icon(
+                    imageVector = Icons.Default.Bolt,
+                    contentDescription = "میانبر سریع",
+                    tint = ShirazuGold
+                )
+            },
+            label = { Text("میانبر سریع", fontSize = 11.sp, fontWeight = FontWeight.SemiBold) }
+        )
+
+        // 3. Web View / SESS Site
+        NavigationBarItem(
+            selected = !sessionState.isDashboardVisible,
+            onClick = onOpenBrowser,
+            icon = {
+                Icon(
+                    imageVector = Icons.Default.Language,
+                    contentDescription = "سایت سس",
+                    tint = if (!sessionState.isDashboardVisible) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            },
+            label = { Text("سایت سس", fontSize = 11.sp, fontWeight = if (!sessionState.isDashboardVisible) FontWeight.Bold else FontWeight.Normal) }
+        )
+
+        // 4. Back (active when browsing WebView)
+        if (!sessionState.isDashboardVisible) {
+            NavigationBarItem(
+                selected = false,
                 enabled = sessionState.canGoBack,
-                modifier = Modifier.testTag("nav_back_button")
-            ) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = "بازگشت به صفحه قبل",
-                    tint = if (sessionState.canGoBack) {
-                        MaterialTheme.colorScheme.onSurface
-                    } else {
-                        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f)
-                    }
-                )
-            }
+                onClick = onBack,
+                icon = {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = "صفحه قبل"
+                    )
+                },
+                label = { Text("بازگشت", fontSize = 11.sp, fontWeight = FontWeight.Normal) }
+            )
+        }
 
-            // 2. Forward
-            IconButton(
-                onClick = onForward,
-                enabled = sessionState.canGoForward,
-                modifier = Modifier.testTag("nav_forward_button")
-            ) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-                    contentDescription = "صفحه بعد",
-                    tint = if (sessionState.canGoForward) {
-                        MaterialTheme.colorScheme.onSurface
-                    } else {
-                        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f)
-                    }
-                )
-            }
-
-            // 3. Home / Dashboard Toggle
-            IconButton(
-                onClick = onHome,
-                modifier = Modifier.testTag("nav_home_button")
-            ) {
-                Icon(
-                    imageVector = if (sessionState.isDashboardVisible) Icons.Default.Language else Icons.Default.Home,
-                    contentDescription = if (sessionState.isDashboardVisible) "مشاهده وب‌سایت" else "میز کار و داشبورد",
-                    tint = MaterialTheme.colorScheme.primary
-                )
-            }
-
-            // 4. Refresh Page
-            IconButton(
-                onClick = onRefresh,
-                modifier = Modifier.testTag("nav_refresh_button")
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Refresh,
-                    contentDescription = "بارگذاری مجدد",
-                    tint = MaterialTheme.colorScheme.onSurface
-                )
-            }
-
-            // 5. Shortcuts / Student Portals
-            IconButton(
-                onClick = onOpenShortcuts,
-                modifier = Modifier.testTag("nav_shortcuts_button")
-            ) {
-                Icon(
-                    imageVector = Icons.Default.GridView,
-                    contentDescription = "پرتال‌های پرکاربرد سس",
-                    tint = MaterialTheme.colorScheme.secondary
-                )
-            }
-
-            // 6. Max Zoom-Out / Overview Fit
-            IconButton(
-                onClick = onResetZoom,
-                modifier = Modifier.testTag("nav_zoom_overview_button")
-            ) {
-                Icon(
-                    imageVector = Icons.Default.ZoomOutMap,
-                    contentDescription = "نمای کامل و حداکثر زوم‌اوت",
-                    tint = MaterialTheme.colorScheme.primary
-                )
-            }
-
-            // 7. Tools / Options Menu (Transferred from Top Bar)
-            IconButton(
-                onClick = { showToolsSheet = true },
-                modifier = Modifier.testTag("nav_tools_menu_button")
-            ) {
+        // 5. Tools & Options
+        NavigationBarItem(
+            selected = showToolsSheet,
+            onClick = { showToolsSheet = true },
+            icon = {
                 if (sessionState.isCaptchaDetected) {
                     BadgedBox(
                         badge = {
@@ -208,19 +183,19 @@ fun SessBottomBar(
                     ) {
                         Icon(
                             imageVector = Icons.Default.MoreVert,
-                            contentDescription = "ابزارها و منوی سس",
+                            contentDescription = "امکانات",
                             tint = ShirazuError
                         )
                     }
                 } else {
                     Icon(
                         imageVector = Icons.Default.MoreVert,
-                        contentDescription = "ابزارها و منوی سس",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        contentDescription = "امکانات"
                     )
                 }
-            }
-        }
+            },
+            label = { Text("امکانات", fontSize = 11.sp, fontWeight = FontWeight.Normal) }
+        )
     }
 
     // Comprehensive Bottom Sheet with all actions migrated from Top Bar
