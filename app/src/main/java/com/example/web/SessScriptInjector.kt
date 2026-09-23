@@ -225,7 +225,7 @@ object SessScriptInjector {
                             '    display: flex !important;',
                             '    align-items: center !important;',
                             '    justify-content: space-between !important;',
-                            '    padding: 11px 13px !important;',
+                            '    padding: 12px 14px !important;',
                             '    font-size: 14px !important;',
                             '    font-weight: bold !important;',
                             '    color: #0369a1 !important;',
@@ -235,12 +235,16 @@ object SessScriptInjector {
                             '    -webkit-user-select: none !important;',
                             '    margin: 0 !important;',
                             '}',
+                            'ul.nav__list label * {',
+                            '    pointer-events: none !important;',
+                            '}',
                             'ul.nav__list label::after {',
                             '    content: "▼" !important;',
                             '    font-size: 10px !important;',
                             '    color: #0284c7 !important;',
                             '    transition: transform 0.2s ease !important;',
                             '}',
+                            'ul.nav__list li[data-open="true"] > label::after,',
                             'ul.nav__list li.is-open > label::after,',
                             'ul.nav__list input[type="checkbox"]:checked ~ label::after {',
                             '    transform: rotate(180deg) !important;',
@@ -253,6 +257,8 @@ object SessScriptInjector {
                             '    margin: 0 !important;',
                             '    background: #ffffff !important;',
                             '}',
+                            'ul.nav__list li[data-open="true"] > ul.group-list,',
+                            'ul.nav__list li[data-open="true"] > .group-list,',
                             'ul.nav__list li.is-open > ul.group-list,',
                             'ul.nav__list li.is-open > .group-list,',
                             'ul.nav__list input[type="checkbox"]:checked ~ ul.group-list,',
@@ -260,14 +266,21 @@ object SessScriptInjector {
                             '    display: block !important;',
                             '    visibility: visible !important;',
                             '    opacity: 1 !important;',
+                            '    max-height: 5000px !important;',
+                            '    height: auto !important;',
+                            '    overflow: visible !important;',
                             '}',
                             'ul.nav__list ul.group-list li {',
                             '    display: block !important;',
+                            '    visibility: visible !important;',
+                            '    opacity: 1 !important;',
                             '    margin: 4px 0 !important;',
                             '}',
-                            'ul.nav__list ul.group-list a.link, ul.nav__list a.link {',
+                            'ul.nav__list ul.group-list a, ul.nav__list ul.group-list a.link {',
                             '    display: block !important;',
-                            '    padding: 9px 12px !important;',
+                            '    visibility: visible !important;',
+                            '    opacity: 1 !important;',
+                            '    padding: 10px 14px !important;',
                             '    font-size: 13px !important;',
                             '    color: #0f172a !important;',
                             '    background: #f8fafc !important;',
@@ -276,8 +289,10 @@ object SessScriptInjector {
                             '    text-decoration: none !important;',
                             '    cursor: pointer !important;',
                             '    font-weight: 500 !important;',
+                            '    min-height: 38px !important;',
+                            '    box-sizing: border-box !important;',
                             '}',
-                            'ul.nav__list ul.group-list a.link:active {',
+                            'ul.nav__list ul.group-list a:active, ul.nav__list ul.group-list a.link:active {',
                             '    background: #e0f2fe !important;',
                             '    color: #0284c7 !important;',
                             '}'
@@ -290,6 +305,60 @@ object SessScriptInjector {
                         if (!doc) return;
                         var navLists = doc.querySelectorAll('.nav__list, ul.nav__list');
                         navLists.forEach(function(navList) {
+                            // Helper to set group open/closed state
+                            function setGroupState(li, open) {
+                                var input = li.querySelector('input[type="checkbox"]');
+                                var subList = li.querySelector('ul.group-list, .group-list');
+                                if (!subList) return;
+
+                                if (open) {
+                                    li.setAttribute('data-open', 'true');
+                                    li.classList.add('is-open');
+                                    subList.style.setProperty('display', 'block', 'important');
+                                    subList.style.setProperty('visibility', 'visible', 'important');
+                                    subList.style.setProperty('opacity', '1', 'important');
+                                    subList.style.setProperty('max-height', 'none', 'important');
+                                    subList.style.setProperty('height', 'auto', 'important');
+                                    subList.style.setProperty('overflow', 'visible', 'important');
+                                    if (input) input.checked = true;
+                                } else {
+                                    li.setAttribute('data-open', 'false');
+                                    li.classList.remove('is-open');
+                                    subList.style.setProperty('display', 'none', 'important');
+                                    subList.style.setProperty('max-height', '0px', 'important');
+                                    subList.style.setProperty('height', '0px', 'important');
+                                    subList.style.setProperty('overflow', 'hidden', 'important');
+                                    if (input) input.checked = false;
+                                }
+                            }
+
+                            // Add Expand-All / Collapse-All Toolbar above menu
+                            var parent = navList.parentElement || navList.parentNode;
+                            if (parent && !parent.querySelector('#sess-nav-controls')) {
+                                var toolbar = doc.createElement('div');
+                                toolbar.id = 'sess-nav-controls';
+                                toolbar.style.cssText = 'display:flex; gap:8px; margin:8px 4px; direction:rtl;';
+                                toolbar.innerHTML = [
+                                    '<button type="button" id="sess-btn-expand-all" style="flex:1; padding:8px 10px; font-size:12px; font-weight:bold; color:#0284c7; background:#e0f2fe; border:1px solid #bae6fd; border-radius:6px; cursor:pointer;">📂 باز کردن همه</button>',
+                                    '<button type="button" id="sess-btn-collapse-all" style="flex:1; padding:8px 10px; font-size:12px; font-weight:bold; color:#475569; background:#f1f5f9; border:1px solid #cbd5e1; border-radius:6px; cursor:pointer;">📁 بستن همه</button>'
+                                ].join('');
+                                parent.insertBefore(toolbar, navList);
+
+                                toolbar.querySelector('#sess-btn-expand-all').addEventListener('click', function(e) {
+                                    e.preventDefault();
+                                    navList.querySelectorAll('> li').forEach(function(li) {
+                                        setGroupState(li, true);
+                                    });
+                                });
+
+                                toolbar.querySelector('#sess-btn-collapse-all').addEventListener('click', function(e) {
+                                    e.preventDefault();
+                                    navList.querySelectorAll('> li').forEach(function(li) {
+                                        setGroupState(li, false);
+                                    });
+                                });
+                            }
+
                             var items = navList.querySelectorAll('> li');
                             items.forEach(function(li) {
                                 var input = li.querySelector('input[type="checkbox"]');
@@ -298,7 +367,6 @@ object SessScriptInjector {
 
                                 if (!label || !subList) return;
 
-                                // Allow touch events on label to toggle without native checkbox suppression
                                 if (input && input.hasAttribute('hidden')) {
                                     input.removeAttribute('hidden');
                                     input.style.cssText = 'position:absolute!important;opacity:0!important;pointer-events:none!important;width:1px!important;height:1px!important;';
@@ -307,28 +375,15 @@ object SessScriptInjector {
                                 if (label.__sessAccordionAttached) return;
                                 label.__sessAccordionAttached = true;
 
-                                var toggleHandler = function(e) {
+                                var clickHandler = function(e) {
                                     e.preventDefault();
                                     e.stopPropagation();
 
-                                    var isExpanded = li.classList.contains('is-open') || 
-                                                     subList.style.display === 'block' || 
-                                                     (input && input.checked);
-
-                                    if (isExpanded) {
-                                        li.classList.remove('is-open');
-                                        subList.style.setProperty('display', 'none', 'important');
-                                        if (input) input.checked = false;
-                                    } else {
-                                        li.classList.add('is-open');
-                                        subList.style.setProperty('display', 'block', 'important');
-                                        subList.style.setProperty('visibility', 'visible', 'important');
-                                        subList.style.setProperty('opacity', '1', 'important');
-                                        if (input) input.checked = true;
-                                    }
+                                    var isCurrentlyOpen = li.getAttribute('data-open') === 'true';
+                                    setGroupState(li, !isCurrentlyOpen);
                                 };
 
-                                label.addEventListener('click', toggleHandler, true);
+                                label.addEventListener('click', clickHandler, true);
                             });
                         });
                     }
@@ -358,8 +413,8 @@ object SessScriptInjector {
 
                     // Run gentle checks to handle delayed ASP.NET WebForms DOM rendering
                     setTimeout(function() { allDocs.forEach(applyAll); }, 300);
-                    setTimeout(function() { allDocs.forEach(applyAll); }, 900);
-                    setTimeout(function() { allDocs.forEach(applyAll); }, 2000);
+                    setTimeout(function() { allDocs.forEach(applyAll); }, 800);
+                    setTimeout(function() { allDocs.forEach(applyAll); }, 1800);
 
                 } catch(e) {
                     console.error("Compatibility script error", e);
