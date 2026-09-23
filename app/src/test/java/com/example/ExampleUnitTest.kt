@@ -62,8 +62,13 @@ class ExampleUnitTest {
     @Test
     fun testMobileOptimizationScriptGeneration() {
         val script = SessScriptInjector.getMobileOptimizationScript(darkMode = true)
-        assertTrue(script.contains("viewport"))
-        assertTrue(script.contains("sess-plus-app-style"))
+        assertTrue(script.contains("sess-plus-dark-style"))
+    }
+
+    @Test
+    fun testCompatibilityScriptGeneration() {
+        val script = SessScriptInjector.getCompatibilityAndMenuFixScript()
+        assertTrue(script.contains("showModalDialog"))
     }
 
     @Test

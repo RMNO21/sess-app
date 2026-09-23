@@ -272,6 +272,7 @@ fun SessMainScreen(
                             val cookieManager = CookieManager.getInstance()
                             cookieManager.setAcceptCookie(true)
                             cookieManager.setAcceptThirdPartyCookies(this, true)
+                            cookieManager.flush()
 
                             // Bridge for AutoLogin, Captcha, Heartbeat & Live Debug Logging
                             addJavascriptInterface(
@@ -303,6 +304,7 @@ fun SessMainScreen(
                                 },
                                 onPageFinishedCallback = { url ->
                                     viewModel.onPageFinished(url, this)
+                                    CookieManager.getInstance().flush()
                                 },
                                 onPageErrorCallback = { err ->
                                     viewModel.onPageError(err)
