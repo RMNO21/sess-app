@@ -1,0 +1,6 @@
+{
+  "name": "Sess Plus",
+  "description": "سامانه سس پلاس دانشگاه شیراز با رابط کاربری اختصاصی موبایل، ورود هوشمند، حفظ نشست و رفع کپچا",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

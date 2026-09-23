@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Academic Graduation Cap / Crest -->
+    <path
+        android:fillColor="#E2B142"
+        android:pathData="M54,27 L28,40 L54,53 L80,40 Z" />
+    <path
+        android:fillColor="#C69214"
+        android:pathData="M78,41 L78,57 C78,57 76,61 74,61 C72,61 72,57 72,57 L72,44 Z" />
+    <path
+        android:fillColor="#D4A017"
+        android:pathData="M74,61 L74,66 L72,66 L72,61 Z" />
+    <!-- Cap Neck / Under-band -->
+    <path
+        android:fillColor="#CBD5E1"
+        android:pathData="M37,45.5 L37,55 C37,63.5 44.5,69 54,69 C63.5,69 71,63.5 71,55 L71,45.5 L54,54 Z" />
+    <!-- Open Book of Knowledge below -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M54,63 C48,60 37,60 30,64 L30,79 C37,75 47,75 54,79 C61,75 71,75 78,79 L78,64 C71,60 60,60 54,63 Z" />
+    <!-- Book Spine & Pages Divider -->
+    <path
+        android:fillColor="#0A192F"
+        android:pathData="M53,64 L55,64 L55,80 L53,80 Z" />
+    <!-- Subtle Golden Star of Excellence -->
+    <path
+        android:fillColor="#F6E05E"
+        android:pathData="M54,23 L55.5,26 L58.5,26.5 L56.2,28.5 L57,31.5 L54,30 L51,31.5 L51.8,28.5 L49.5,26.5 L52.5,26 Z" />
+</vector>
