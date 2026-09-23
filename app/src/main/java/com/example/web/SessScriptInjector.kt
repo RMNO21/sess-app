@@ -521,8 +521,15 @@ object SessScriptInjector {
                             var id = interactive.id || '';
                             var text = (interactive.innerText || interactive.value || '').trim();
                             if (text.length > 50) text = text.substring(0, 50) + '...';
+
+                            var onclickAttr = interactive.getAttribute('onclick') || '';
+                            var hrefAttr = interactive.getAttribute('href') || '';
                             
-                            sendLog('CLICK', 'کلیک روی <' + tag + (id ? '#' + id : '') + '> ' + (text ? '"' + text + '"' : ''));
+                            sendLog('CLICK', 'کلیک روی <' + tag + (id ? '#' + id : '') + '> ' + (text ? '"' + text + '"' : ''), onclickAttr ? 'onclick: ' + onclickAttr : (hrefAttr ? 'href: ' + hrefAttr : ''));
+
+                            if (onclickAttr && (onclickAttr.indexOf('Perform') !== -1 || onclickAttr.indexOf('Connect2') !== -1)) {
+                                sendLog('USER_ACTION', onclickAttr, 'Tag: ' + tag + ', Text: ' + text);
+                            }
                         } catch(err) {}
                     }, true);
 

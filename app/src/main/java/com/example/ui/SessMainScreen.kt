@@ -62,12 +62,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.model.CustomShortcut
 import com.example.ui.components.CaptchaAlertBanner
 import com.example.ui.components.DebugConsoleSheet
+import com.example.ui.components.EditShortcutDialog
 import com.example.ui.components.LoginCredentialsDialog
 import com.example.ui.components.QuickLinksSheet
 import com.example.ui.components.SessBottomBar
+import com.example.ui.components.SessHomeDashboard
 import com.example.ui.components.SessSplashScreen
 import com.example.ui.components.SessTopAppBar
 import com.example.ui.components.SessionInfoDialog
@@ -96,6 +98,8 @@ fun SessMainScreen(
     var showShortcutsSheet by remember { mutableStateOf(false) }
     var showSettingsSheet by remember { mutableStateOf(false) }
     var showDebugConsole by remember { mutableStateOf(false) }
+    var showEditShortcutDialog by remember { mutableStateOf(false) }
+    var editingShortcut by remember { mutableStateOf<CustomShortcut?>(null) }
 
     // Automatic prompt for credentials on first run if never saved
     var hasCheckedFirstRunPrompt by remember { mutableStateOf(false) }
@@ -131,12 +135,14 @@ fun SessMainScreen(
     }
 
     // Handle Hardware / Gesture Back Press
-    BackHandler(enabled = sessionState.canGoBack) {
+    BackHandler(enabled = !sessionState.isDashboardVisible) {
         webViewInstance?.let { webView ->
             if (webView.canGoBack()) {
                 webView.goBack()
+            } else {
+                viewModel.showDashboard()
             }
-        }
+        } ?: viewModel.showDashboard()
     }
 
     // Show temporary status messages
@@ -185,7 +191,7 @@ fun SessMainScreen(
                     webViewInstance?.let { if (it.canGoForward()) it.goForward() }
                 },
                 onHome = {
-                    webViewInstance?.loadUrl("https://sess.shirazu.ac.ir")
+                    viewModel.toggleDashboard()
                 },
                 onRefresh = {
                     webViewInstance?.reload()
@@ -199,7 +205,7 @@ fun SessMainScreen(
                 onZoomOut = {
                     webViewInstance?.let { viewModel.zoomOut(it) }
                 },
-                onOpenShortcuts = { showShortcutsSheet = true },
+                onOpenShortcuts = { viewModel.showDashboard() },
                 onBypassCaptcha = {
                     webViewInstance?.let { viewModel.bypassCaptchaAndResetSession(it) }
                 },
@@ -403,8 +409,63 @@ fun SessMainScreen(
                     credentials = credentials,
                     onCancel = { viewModel.cancelAutoLoginSplash() }
                 )
+
+                // Native Launch Dashboard
+                if (sessionState.isDashboardVisible) {
+                    SessHomeDashboard(
+                        customShortcuts = customShortcuts,
+                        menuCategories = viewModel.sessMenuCategories,
+                        currentUrl = sessionState.currentUrl,
+                        onExecuteShortcut = { shortcut ->
+                            webViewInstance?.let { viewModel.executeCustomShortcut(shortcut, it) }
+                        },
+                        onEditShortcut = { shortcut ->
+                            editingShortcut = shortcut
+                            showEditShortcutDialog = true
+                        },
+                        onAddShortcut = {
+                            editingShortcut = null
+                            showEditShortcutDialog = true
+                        },
+                        onExecuteMenuItem = { item ->
+                            webViewInstance?.let { viewModel.executeMenuItem(item, it) }
+                        },
+                        onOpenBrowser = {
+                            viewModel.hideDashboard()
+                        },
+                        modifier = Modifier.fillMaxSize()
+                    )
+                }
             }
         }
+    }
+
+    // Edit / Add Custom Shortcut Dialog
+    if (showEditShortcutDialog) {
+        EditShortcutDialog(
+            shortcut = editingShortcut,
+            onSave = { name, targetUrl, script ->
+                val current = editingShortcut
+                if (current != null) {
+                    viewModel.updateCustomShortcut(
+                        current.copy(name = name, targetUrl = targetUrl, actionScript = script)
+                    )
+                } else {
+                    viewModel.addCustomShortcut(name, targetUrl, script)
+                }
+                showEditShortcutDialog = false
+                editingShortcut = null
+            },
+            onDelete = { id ->
+                viewModel.deleteCustomShortcut(id)
+                showEditShortcutDialog = false
+                editingShortcut = null
+            },
+            onDismiss = {
+                showEditShortcutDialog = false
+                editingShortcut = null
+            }
+        )
     }
 
     // Debug Console Sheet (Logs & Custom Shortcut Creator)

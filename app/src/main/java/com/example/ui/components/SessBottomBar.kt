@@ -145,14 +145,14 @@ fun SessBottomBar(
                 )
             }
 
-            // 3. Home (sess.shirazu.ac.ir)
+            // 3. Home / Dashboard Toggle
             IconButton(
                 onClick = onHome,
                 modifier = Modifier.testTag("nav_home_button")
             ) {
                 Icon(
-                    imageVector = Icons.Default.Home,
-                    contentDescription = "صفحه نخست سس",
+                    imageVector = if (sessionState.isDashboardVisible) Icons.Default.Language else Icons.Default.Home,
+                    contentDescription = if (sessionState.isDashboardVisible) "مشاهده وب‌سایت" else "میز کار و داشبورد",
                     tint = MaterialTheme.colorScheme.primary
                 )
             }

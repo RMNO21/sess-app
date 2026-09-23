@@ -45,160 +45,142 @@ class SessViewModel(application: Application) : AndroidViewModel(application) {
     private var splashTimeoutJob: Job? = null
     private var webViewRef: WebView? = null
 
+    private var lastUserActionScript: String? = null
+
     val quickLinks = listOf(
         QuickLink(
-            title = "سامانه سس (اصلی)",
+            title = "سامانه سس (صفحه اصلی)",
             description = "ورود به پورتال اصلی سس دانشگاه شیراز",
             url = "https://sess.shirazu.ac.ir",
             category = "اصلی",
             iconName = "home"
+        )
+    )
+
+    val sessMenuCategories: List<SessMenuCategory> = listOf(
+        SessMenuCategory(
+            id = "cat-user",
+            title = "اطلاعات کاربری",
+            iconName = "account_circle",
+            items = listOf(
+                SessMenuItem("تغيير کلمه رمز", "PerformStd('Cgp');", "lock"),
+                SessMenuItem("اطلاعات پايه", "Perform('SignUp');", "badge"),
+                SessMenuItem("اطلاعات افزوده", "PerformStd('Ovs');", "info"),
+                SessMenuItem("ارسال مدارک", "PerformStd('Sdc');", "upload_file"),
+                SessMenuItem("مشخصات دانشجويي", "Perform('BasicInfo');", "person"),
+                SessMenuItem("خطاهای سیستم", "PerformStd('ErrRep');", "bug_report"),
+                SessMenuItem("پرونده دیجیتال", "PerformStd('SDGF');", "folder"),
+                SessMenuItem("اطلاعات كنكور", "PerformStd('Ssd');", "school"),
+                SessMenuItem("آیین نامه ها", "PerformStd('Reg');", "menu_book"),
+                SessMenuItem("تابلو احكام جديد", "PerformStd('Amt');", "campaign"),
+                SessMenuItem("دریافت رمز اولیه", "PerformStd('KeyG');", "vpn_key"),
+                SessMenuItem("تاریخچه ورود", "PerformStd('Vlg');", "history"),
+                SessMenuItem("انتخاب کاربر پیش فرض SSO", "PerformStd('SDEF');", "switch_account")
+            )
         ),
-        QuickLink(
-            title = "سامانه تغذیه و سلف (SUPS)",
-            description = "رزرو و خرید اعتبار غذای دانشجویی",
-            url = "https://sups.shirazu.ac.ir/SfxWeb",
-            category = "رفاهی",
-            iconName = "restaurant"
+        SessMenuCategory(
+            id = "cat-msg",
+            title = "پيام‌ها",
+            iconName = "mail",
+            items = listOf(
+                SessMenuItem("پيام‌ها", "PerformStd('Msg');", "mail"),
+                SessMenuItem("پيام به استادمشاور", "Perform('Msg2Tch');", "send"),
+                SessMenuItem("پيام به کارشناس بخش", "Perform('Msg2Exp');", "support_agent")
+            )
         ),
-        QuickLink(
-            title = "خلاصه کارنامه و نمرات",
-            description = "مشاهده کارنامه کلی و نمرات ثبت شده",
-            url = "https://sess.shirazu.ac.ir",
-            category = "آموزشی",
-            iconName = "grade",
-            actionScript = "PerformStd('Sum');"
-        ),
-        QuickLink(
-            title = "برنامه درسی",
-            description = "مشاهده سرفصل و برنامه دروس",
-            url = "https://sess.shirazu.ac.ir",
-            category = "آموزشی",
-            iconName = "schedule",
-            actionScript = "Perform('Major');"
-        ),
-        QuickLink(
-            title = "چک‌لیست انتخاب واحد",
-            description = "بررسی وضعیت و مجوز انتخاب واحد",
-            url = "https://sess.shirazu.ac.ir",
-            category = "آموزشی",
-            iconName = "schedule",
-            actionScript = "PerformStd('Rcf');"
-        ),
-        QuickLink(
-            title = "برنامه کلاسی نیمسال",
-            description = "ساعت و روز تشکیل کلاس‌های ترم",
-            url = "https://sess.shirazu.ac.ir",
-            category = "آموزشی",
-            iconName = "event",
-            actionScript = "PerformStd('Pcl');"
-        ),
-        QuickLink(
-            title = "صندوق پیام‌ها",
-            description = "پیام‌های سیستم، استاد و کارشناس",
-            url = "https://sess.shirazu.ac.ir",
-            category = "ارتباطی",
-            iconName = "email",
-            actionScript = "PerformStd('Msg');"
-        ),
-        QuickLink(
-            title = "امور اسکان و خوابگاه",
-            description = "ثبت نام و مدیریت اتاق خوابگاه",
-            url = "https://sess.shirazu.ac.ir",
-            category = "رفاهی",
-            iconName = "hotel",
-            actionScript = "PerformStd('Dst');"
-        ),
-        QuickLink(
-            title = "خرید ژتون و رفاهی",
-            description = "شارژ ژتون و خدمات رفاهی دانشجویی",
-            url = "https://sess.shirazu.ac.ir",
-            category = "رفاهی",
-            iconName = "restaurant",
-            actionScript = "Perform('SfxChip');"
-        ),
-        QuickLink(
-            title = "پرداخت شهریه اینترنتی",
-            description = "پرداخت آنلاین و تسویه‌حساب مالی",
-            url = "https://sess.shirazu.ac.ir",
-            category = "مالی",
-            iconName = "payment",
-            actionScript = "Perform('IntPy');"
-        ),
-        QuickLink(
-            title = "لیست پرداخت‌ها",
-            description = "مشاهده تاریخچه و رسید تراکنش‌ها",
-            url = "https://sess.shirazu.ac.ir",
-            category = "مالی",
-            iconName = "payment",
-            actionScript = "PerformStd('Scr');"
-        ),
-        QuickLink(
-            title = "پرونده دیجیتال",
-            description = "سوابق، احکام و پرونده دانشجویی",
-            url = "https://sess.shirazu.ac.ir",
-            category = "کاربری",
+        SessMenuCategory(
+            id = "cat-edu",
+            title = "آموزشی",
             iconName = "school",
-            actionScript = "PerformStd('SDGF');"
+            items = listOf(
+                SessMenuItem("برنامه درسی", "Perform('Major');", "auto_stories"),
+                SessMenuItem("دروس جبرانی", "Perform('Compensate');", "library_books"),
+                SessMenuItem("لیست دروس گرفته", "Perform('Som');", "format_list_bulleted"),
+                SessMenuItem("نمودار پیشرفت تحصیلی", "Perform('StdProgress');", "trending_up"),
+                SessMenuItem("خلاصه کارنامه", "PerformStd('Sum');", "grade"),
+                SessMenuItem("چک لیست ثبت نام مقدماتی", "PerformStd('Prc');", "checklist_rtl"),
+                SessMenuItem("چک لیست انتخاب واحد", "PerformStd('Rcf');", "fact_check"),
+                SessMenuItem("عملیات های ثبت نام", "Perform('RegLog');", "how_to_reg"),
+                SessMenuItem("فارغ التحصیلی", "PerformStd('Sgr');", "celebration"),
+                SessMenuItem("برنامه کلاسی نیمسال", "PerformStd('Pcl');", "calendar_month"),
+                SessMenuItem("تقویم آموزشی", "PerformStd('Ssr');", "date_range"),
+                SessMenuItem("سوابق تحصیلی انتقالی", "PerformStd('See');", "history_edu"),
+                SessMenuItem("آزمونهای معافی", "PerformStd('Exl');", "assignment_turned_in"),
+                SessMenuItem("امور دستیار استاد", "Perform('ExamTA');", "co_present"),
+                SessMenuItem("جلسات مشاوره", "PerformStd('StdCons');", "record_voice_over")
+            )
         ),
-        QuickLink(
-            title = "پورتال اصلی دانشگاه شیراز",
-            description = "اخبار، تقویم و اطلاعیه‌های رسمی",
-            url = "https://shirazu.ac.ir",
-            category = "دانشگاه",
-            iconName = "school"
+        SessMenuCategory(
+            id = "cat-eval",
+            title = "ارزیابی",
+            iconName = "check_circle",
+            items = listOf(
+                SessMenuItem("تکمیل فرم های ارزیابی", "PerformStd('ActiveEvl');", "rule")
+            )
         ),
-        QuickLink(
-            title = "سامانه یادگیری نوید (LMS)",
-            description = "تکالیف، آزمون‌ها و محتوای الکترونیکی",
-            url = "https://vru.shirazu.ac.ir",
-            category = "دانشگاه",
-            iconName = "computer"
+        SessMenuCategory(
+            id = "cat-student",
+            title = "امور دانشجویی",
+            iconName = "groups",
+            items = listOf(
+                SessMenuItem("خوابگاه", "PerformStd('Dst');", "apartment"),
+                SessMenuItem("فرم هم اتاقی", "Perform('DormAgent');", "groups"),
+                SessMenuItem("خوابگاه ورودیهای جدید", "Perform('DormitoryZero');", "meeting_room"),
+                SessMenuItem("درخواست وام", "PerformStd('Erl');", "account_balance"),
+                SessMenuItem("انتخابات دانشجویی", "PerformStd('Evt');", "how_to_vote"),
+                SessMenuItem("خرید ژتون و رفاهی", "Perform('SfxChip');", "restaurant"),
+                SessMenuItem("ثبت نام مراسم فارغ التحصیلی", "PerformStd('GRDSTD');", "school"),
+                SessMenuItem("شبکه آزمایشگاهی دانشگاه", "PerformStd('LabsView');", "biotech"),
+                SessMenuItem("درخواست های اسکان متفرقه", "PerformStd('NewRoomerReqs');", "hotel"),
+                SessMenuItem("درخواست های نوبت دهی آزمایشگاه", "Perform('LabServReqs');", "science")
+            )
         ),
-        QuickLink(
-            title = "خرید ژتون هفتگی (سلف)",
-            description = "انتخاب و رزرو ژتون هفتگی غذا در سلف",
-            url = "https://sups.shirazu.ac.ir/SfxWeb",
-            category = "رفاهی",
-            iconName = "restaurant",
-            actionScript = "var b = document.getElementById('pbcw'); if (b) b.click(); else if (window.openNav) openNav();"
+        SessMenuCategory(
+            id = "cat-finance",
+            title = "امور مالی",
+            iconName = "payments",
+            items = listOf(
+                SessMenuItem("پرداخت شهریه اینترنتی", "Perform('IntPy');", "payment"),
+                SessMenuItem("لیست پرداختها", "PerformStd('Scr');", "receipt_long"),
+                SessMenuItem("پرداختهای اینترنتی", "PerformStd('Psp');", "credit_card"),
+                SessMenuItem("چک های تقسیطی", "PerformStd('Psc');", "price_check"),
+                SessMenuItem("چک لیست مالی نیمسال", "PerformStd('Sfc');", "checklist"),
+                SessMenuItem("جدول شهریه", "Perform('AccTable');", "table_chart"),
+                SessMenuItem("شهریه", "Perform('Pst');", "attach_money"),
+                SessMenuItem("شهریه رایگان", "PerformStd('Frt');", "money_off"),
+                SessMenuItem("بدهی های موضوعی", "PerformStd('StdDebPay');", "request_quote"),
+                SessMenuItem("حق التدریس دستیار آموزشی", "PerformStd('HSC');", "payments")
+            )
         ),
-        QuickLink(
-            title = "خرید ژتون لیستی (سلف)",
-            description = "رزرو وعده‌های غذایی به صورت لیستی",
-            url = "https://sups.shirazu.ac.ir/SfxWeb",
-            category = "رفاهی",
-            iconName = "restaurant",
-            actionScript = "var b = document.getElementById('pbcL'); if (b) b.click(); else if (window.openNav) openNav();"
+        SessMenuCategory(
+            id = "cat-process",
+            title = "فرايندها",
+            iconName = "sync",
+            items = listOf(
+                SessMenuItem("فرايند ثبت نام", "Perform('Spr');", "published_with_changes"),
+                SessMenuItem("منابع و برنامه ها", "PerformStd('Rss');", "hub"),
+                SessMenuItem("فرآیندهای دانشجویی", "PerformStd('Ssi');", "account_tree"),
+                SessMenuItem("نوبت های مراجعه", "PerformStd('Ats');", "event_available"),
+                SessMenuItem("فرايند ثبت نام (جدید)", "Perform('RegStdProc');", "dynamic_feed")
+            )
         ),
-        QuickLink(
-            title = "افزایش اعتبار سلف",
-            description = "شارژ موجودی کارت تغذیه دانشجویی",
-            url = "https://sups.shirazu.ac.ir/SfxWeb",
-            category = "رفاهی",
-            iconName = "payment",
-            actionScript = "var b = document.getElementById('pbc'); if (b) b.click(); else if (window.openNav) openNav();"
+        SessMenuCategory(
+            id = "cat-cultural",
+            title = "امور فرهنگی",
+            iconName = "palette",
+            items = listOf(
+                SessMenuItem("امور فرهنگی", "PerformStd('CLE');", "local_library")
+            )
         ),
-        QuickLink(
-            title = "گزارش خرید ژتون",
-            description = "مشاهده تاریخچه وعده‌های رزرو شده",
-            url = "https://sups.shirazu.ac.ir/SfxWeb/Emp/BoughtChip.aspx",
-            category = "رفاهی",
-            iconName = "receipt"
-        ),
-        QuickLink(
-            title = "رزرو رفاهی (استخر و سونا)",
-            description = "رزرو اماکن ورزشی و رفاهی دانشگاه",
-            url = "https://sups.shirazu.ac.ir/SfxWeb",
-            category = "رفاهی",
-            iconName = "hotel",
-            actionScript = "var b = document.getElementById('pr'); if (b) b.click(); else if (window.openNav) openNav();"
-        ),
-        QuickLink(
-            title = "تفویض تحویل ژتون",
-            description = "واگذاری و انتقال ژتون به سایر دانشجویان",
-            url = "https://sups.shirazu.ac.ir/SfxWeb/SFX/SfxAssignment.aspx",
-            category = "رفاهی",
-            iconName = "people"
+        SessMenuCategory(
+            id = "cat-virtual",
+            title = "امور واحدهای مجازی",
+            iconName = "computer",
+            items = listOf(
+                SessMenuItem("کتابخانه دیجیتال", "PerformStd('DgtL');", "menu_book"),
+                SessMenuItem("گفتگو با کارشناس بخش", "Connect2EduExpert();", "chat"),
+                SessMenuItem("گفتگو با کارشناس حسابداری", "Connect2CalExpert();", "support")
+            )
         )
     )
 
@@ -210,13 +192,19 @@ class SessViewModel(application: Application) : AndroidViewModel(application) {
     fun executeQuickLink(link: QuickLink, webView: WebView) {
         addDebugLog("QUICKLINK_RUN", "باز کردن میان‌بر: ${link.title}", "URL: ${link.url}, Action: ${link.actionScript}")
         if (link.actionScript.isNotBlank()) {
+            lastUserActionScript = link.actionScript
+        }
+        _sessionState.update {
+            it.copy(
+                isDashboardVisible = false,
+                pendingActionScript = link.actionScript.ifBlank { null },
+                pendingTargetUrl = link.url.ifBlank { "https://sess.shirazu.ac.ir" },
+                statusMessage = "در حال انتقال به «${link.title}»..."
+            )
+        }
+        if (link.actionScript.isNotBlank()) {
             val currentUrl = _sessionState.value.currentUrl
-            val matchesDomain = if (link.url.contains("sups.shirazu.ac.ir")) {
-                currentUrl.contains("sups.shirazu.ac.ir")
-            } else {
-                currentUrl.contains("sess.shirazu.ac.ir")
-            }
-
+            val matchesDomain = currentUrl.contains("sess.shirazu.ac.ir") && !currentUrl.contains("Logout", ignoreCase = true)
             if (matchesDomain) {
                 webView.evaluateJavascript(link.actionScript, null)
             } else {
@@ -240,7 +228,25 @@ class SessViewModel(application: Application) : AndroidViewModel(application) {
         this.webViewRef = null
     }
 
+    fun showDashboard() {
+        _sessionState.update { it.copy(isDashboardVisible = true) }
+    }
+
+    fun hideDashboard() {
+        _sessionState.update { it.copy(isDashboardVisible = false) }
+    }
+
+    fun toggleDashboard() {
+        _sessionState.update { it.copy(isDashboardVisible = !it.isDashboardVisible) }
+    }
+
     fun addDebugLog(type: String, summary: String, details: String = "") {
+        if (type == "USER_ACTION" || (type == "CLICK" && details.startsWith("onclick: "))) {
+            val script = if (type == "USER_ACTION") summary else details.removePrefix("onclick: ").trim()
+            if (script.contains("Perform", ignoreCase = true) || script.contains("Connect2", ignoreCase = true)) {
+                lastUserActionScript = script
+            }
+        }
         val entry = DebugLogEntry(
             type = type,
             summary = summary,
@@ -299,6 +305,13 @@ class SessViewModel(application: Application) : AndroidViewModel(application) {
         addDebugLog("SHORTCUT_ADD", "میانبر جدید ثبت شد: $finalName", "URL: $url\nScript: $actionScript")
     }
 
+    fun updateCustomShortcut(shortcut: CustomShortcut) {
+        prefsManager.updateCustomShortcut(shortcut)
+        _customShortcuts.value = prefsManager.loadCustomShortcuts()
+        _sessionState.update { it.copy(statusMessage = "میانبر «${shortcut.name}» به‌روزرسانی شد") }
+        addDebugLog("SHORTCUT_UPDATE", "میانبر به‌روزرسانی شد: ${shortcut.name}")
+    }
+
     fun deleteCustomShortcut(id: String) {
         val updated = _customShortcuts.value.filterNot { it.id == id }
         _customShortcuts.value = updated
@@ -307,11 +320,80 @@ class SessViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun executeCustomShortcut(shortcut: CustomShortcut, webView: WebView) {
-        addDebugLog("SHORTCUT_RUN", "در حال رفتن به میانبر: ${shortcut.name}", "URL: ${shortcut.targetUrl}")
+        addDebugLog("SHORTCUT_RUN", "در حال رفتن به میانبر: ${shortcut.name}", "URL: ${shortcut.targetUrl}, Script: ${shortcut.actionScript}")
         if (shortcut.actionScript.isNotBlank()) {
-            webView.evaluateJavascript(shortcut.actionScript, null)
+            lastUserActionScript = shortcut.actionScript
+        }
+        _sessionState.update {
+            it.copy(
+                isDashboardVisible = false,
+                pendingActionScript = shortcut.actionScript.ifBlank { null },
+                pendingTargetUrl = shortcut.targetUrl.ifBlank { "https://sess.shirazu.ac.ir" },
+                statusMessage = "در حال انتقال به «${shortcut.name}»..."
+            )
+        }
+        if (shortcut.actionScript.isNotBlank()) {
+            val currentUrl = _sessionState.value.currentUrl
+            val isAlreadyOnSess = currentUrl.contains("sess.shirazu.ac.ir") && !currentUrl.contains("Logout", ignoreCase = true)
+            if (isAlreadyOnSess) {
+                webView.evaluateJavascript(shortcut.actionScript, null)
+            } else {
+                webView.loadUrl(shortcut.targetUrl.ifBlank { "https://sess.shirazu.ac.ir" })
+            }
         } else if (shortcut.targetUrl.isNotBlank()) {
             webView.loadUrl(shortcut.targetUrl)
+        }
+    }
+
+    fun executeMenuItem(item: SessMenuItem, webView: WebView) {
+        addDebugLog("MENU_EXEC", "اجرای آیتم منوی ۹ گانه: ${item.title}", "Script: ${item.script}")
+        lastUserActionScript = item.script
+        _sessionState.update {
+            it.copy(
+                isDashboardVisible = false,
+                pendingActionScript = item.script,
+                pendingTargetUrl = "https://sess.shirazu.ac.ir",
+                statusMessage = "در حال انتقال به «${item.title}»..."
+            )
+        }
+
+        val currentUrl = _sessionState.value.currentUrl
+        val isAlreadyOnSess = currentUrl.contains("sess.shirazu.ac.ir") && !currentUrl.contains("Logout", ignoreCase = true)
+        if (isAlreadyOnSess) {
+            webView.evaluateJavascript(item.script, null)
+        } else {
+            webView.loadUrl("https://sess.shirazu.ac.ir")
+        }
+    }
+
+    fun checkAndResumePendingTarget(webView: WebView) {
+        val pendingScript = _sessionState.value.pendingActionScript
+        val pendingUrl = _sessionState.value.pendingTargetUrl
+
+        if (!pendingScript.isNullOrBlank()) {
+            addDebugLog("AUTO_RESUME", "بازیابی خودکار نشست و مقصد: اجرای اسکریپت پس از تایید ورود", pendingScript)
+            _sessionState.update {
+                it.copy(
+                    pendingActionScript = null,
+                    statusMessage = "ورود مجدد تایید شد؛ هدایت به بخش انتخابی..."
+                )
+            }
+            viewModelScope.launch {
+                delay(500)
+                webView.evaluateJavascript(pendingScript, null)
+            }
+        } else if (!pendingUrl.isNullOrBlank() && !pendingUrl.equals("https://sess.shirazu.ac.ir", ignoreCase = true) && !pendingUrl.contains("login", ignoreCase = true)) {
+            addDebugLog("AUTO_RESUME", "بازیابی خودکار نشست و مقصد: بارگذاری آدرس پس از تایید ورود", pendingUrl)
+            _sessionState.update {
+                it.copy(
+                    pendingTargetUrl = null,
+                    statusMessage = "ورود مجدد تایید شد؛ باز کردن آدرس درخواستی..."
+                )
+            }
+            viewModelScope.launch {
+                delay(300)
+                webView.loadUrl(pendingUrl)
+            }
         }
     }
 
@@ -407,6 +489,15 @@ class SessViewModel(application: Application) : AndroidViewModel(application) {
         addDebugLog("NAV_START", "شروع بارگذاری: $url")
         val creds = credentials.value
         val isLoginPageCandidate = creds.isSaved && creds.isAutoLoginEnabled && creds.username.isNotBlank() && url.contains("sess.shirazu.ac.ir")
+
+        // Auto-recovery check: If redirected to logout or login unexpectedly, preserve last user action
+        if (url.contains("Logout.aspx", ignoreCase = true) || (url.contains("sess.shirazu.ac.ir") && url.contains("login", ignoreCase = true))) {
+            if (_sessionState.value.pendingActionScript == null && !lastUserActionScript.isNullOrBlank()) {
+                _sessionState.update { it.copy(pendingActionScript = lastUserActionScript) }
+                addDebugLog("SESSION_RECOVERY", "تشخیص خروج ناخواسته از نشست؛ ذخیره اسکریپت برای اجرای خودکار پس از ورود مجدد", lastUserActionScript ?: "")
+            }
+        }
+
         _sessionState.update {
             it.copy(
                 currentUrl = url,
@@ -466,6 +557,7 @@ class SessViewModel(application: Application) : AndroidViewModel(application) {
             if (result == "true") {
                 splashTimeoutJob?.cancel()
                 _sessionState.update { it.copy(isAutoLoginInProgress = false) }
+                checkAndResumePendingTarget(webView)
             }
         }
 
@@ -512,9 +604,10 @@ class SessViewModel(application: Application) : AndroidViewModel(application) {
             _sessionState.update { it.copy(statusMessage = "ورود خودکار انجام شد") }
             addDebugLog("AUTOLOGIN_SUBMIT", "فرم ورود به صورت خودکار ارسال شد")
             viewModelScope.launch {
-                delay(700)
+                delay(800)
                 splashTimeoutJob?.cancel()
                 _sessionState.update { it.copy(isAutoLoginInProgress = false) }
+                webViewRef?.let { checkAndResumePendingTarget(it) }
             }
         } else {
             splashTimeoutJob?.cancel()

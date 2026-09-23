@@ -10,6 +10,7 @@ data class UserCredentials(
 )
 
 data class SessionState(
+    val isDashboardVisible: Boolean = true,
     val isKeepAliveRunning: Boolean = true,
     val lastHeartbeatSuccessTime: Long = 0L,
     val secondsUntilNextHeartbeat: Int = 120,
@@ -23,7 +24,9 @@ data class SessionState(
     val canGoBack: Boolean = false,
     val canGoForward: Boolean = false,
     val isAutoLoginInProgress: Boolean = false,
-    val statusMessage: String? = null
+    val statusMessage: String? = null,
+    val pendingTargetUrl: String? = null,
+    val pendingActionScript: String? = null
 )
 
 data class QuickLink(
@@ -59,4 +62,17 @@ data class CustomShortcut(
     val targetUrl: String,
     val actionScript: String = "",
     val createdAt: Long = System.currentTimeMillis()
+)
+
+data class SessMenuItem(
+    val title: String,
+    val script: String,
+    val iconName: String = ""
+)
+
+data class SessMenuCategory(
+    val id: String,
+    val title: String,
+    val iconName: String,
+    val items: List<SessMenuItem>
 )

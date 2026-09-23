@@ -3,10 +3,13 @@ package com.example.data
 import android.content.Context
 import android.content.SharedPreferences
 import com.example.model.AppSettings
+import com.example.model.CustomShortcut
 import com.example.model.UserCredentials
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import org.json.JSONArray
+import org.json.JSONObject
 
 class PreferencesManager(context: Context) {
     private val prefs: SharedPreferences =
@@ -97,6 +100,76 @@ class PreferencesManager(context: Context) {
         _settings.value = newSettings
     }
 
+    fun loadCustomShortcuts(): List<CustomShortcut> {
+        val json = prefs.getString(KEY_CUSTOM_SHORTCUTS, null)
+        if (json == null) {
+            val initial = listOf(
+                CustomShortcut(
+                    id = "default_sess_home",
+                    name = "سامانه سس (صفحه اصلی)",
+                    targetUrl = "https://sess.shirazu.ac.ir",
+                    actionScript = ""
+                )
+            )
+            saveCustomShortcuts(initial)
+            return initial
+        }
+        return try {
+            val array = JSONArray(json)
+            val list = mutableListOf<CustomShortcut>()
+            for (i in 0 until array.length()) {
+                val obj = array.getJSONObject(i)
+                list.add(
+                    CustomShortcut(
+                        id = obj.optString("id", java.util.UUID.randomUUID().toString()),
+                        name = obj.getString("name"),
+                        targetUrl = obj.getString("targetUrl"),
+                        actionScript = obj.optString("actionScript", ""),
+                        createdAt = obj.optLong("createdAt", System.currentTimeMillis())
+                    )
+                )
+            }
+            if (list.isEmpty()) {
+                val initial = listOf(
+                    CustomShortcut(
+                        id = "default_sess_home",
+                        name = "سامانه سس (صفحه اصلی)",
+                        targetUrl = "https://sess.shirazu.ac.ir",
+                        actionScript = ""
+                    )
+                )
+                saveCustomShortcuts(initial)
+                initial
+            } else {
+                list
+            }
+        } catch (e: Exception) {
+            emptyList()
+        }
+    }
+
+    fun saveCustomShortcuts(shortcuts: List<CustomShortcut>) {
+        val array = JSONArray()
+        for (s in shortcuts) {
+            val obj = JSONObject().apply {
+                put("id", s.id)
+                put("name", s.name)
+                put("targetUrl", s.targetUrl)
+                put("actionScript", s.actionScript)
+                put("createdAt", s.createdAt)
+            }
+            array.put(obj)
+        }
+        prefs.edit().putString(KEY_CUSTOM_SHORTCUTS, array.toString()).apply()
+    }
+
+    fun updateCustomShortcut(updated: CustomShortcut) {
+        val current = loadCustomShortcuts().map {
+            if (it.id == updated.id) updated else it
+        }
+        saveCustomShortcuts(current)
+    }
+
     companion object {
         private const val KEY_USERNAME = "sess_username"
         private const val KEY_PASSWORD = "sess_password"
@@ -112,43 +185,5 @@ class PreferencesManager(context: Context) {
         private const val KEY_AUTO_BYPASS_CAPTCHA = "setting_auto_bypass_captcha"
         private const val KEY_TEXT_ZOOM = "setting_text_zoom"
         private const val KEY_CUSTOM_SHORTCUTS = "setting_custom_shortcuts"
-    }
-
-    fun loadCustomShortcuts(): List<com.example.model.CustomShortcut> {
-        val json = prefs.getString(KEY_CUSTOM_SHORTCUTS, null) ?: return emptyList()
-        return try {
-            val array = org.json.JSONArray(json)
-            val list = mutableListOf<com.example.model.CustomShortcut>()
-            for (i in 0 until array.length()) {
-                val obj = array.getJSONObject(i)
-                list.add(
-                    com.example.model.CustomShortcut(
-                        id = obj.optString("id", java.util.UUID.randomUUID().toString()),
-                        name = obj.getString("name"),
-                        targetUrl = obj.getString("targetUrl"),
-                        actionScript = obj.optString("actionScript", ""),
-                        createdAt = obj.optLong("createdAt", System.currentTimeMillis())
-                    )
-                )
-            }
-            list
-        } catch (e: Exception) {
-            emptyList()
-        }
-    }
-
-    fun saveCustomShortcuts(shortcuts: List<com.example.model.CustomShortcut>) {
-        val array = org.json.JSONArray()
-        for (s in shortcuts) {
-            val obj = org.json.JSONObject().apply {
-                put("id", s.id)
-                put("name", s.name)
-                put("targetUrl", s.targetUrl)
-                put("actionScript", s.actionScript)
-                put("createdAt", s.createdAt)
-            }
-            array.put(obj)
-        }
-        prefs.edit().putString(KEY_CUSTOM_SHORTCUTS, array.toString()).apply()
     }
 }
