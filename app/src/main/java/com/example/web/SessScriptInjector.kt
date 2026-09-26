@@ -8,35 +8,36 @@ object SessScriptInjector {
         return """
             (function() {
                 try {
-                    // Check if we are on a login form
-                    var userInputs = document.querySelectorAll('input[type="text"], input[name*="user" i], input[name*="id" i], #edId, #username');
-                    var passInputs = document.querySelectorAll('input[type="password"], #edPass, #password');
+                    // 1. Locate SESS or standard login inputs
+                    var userInput = document.getElementById('edId') ||
+                        document.querySelector('input[name*="user" i], input[name*="id" i], #username, input[type="text"]');
+                    var passInput = document.getElementById('edPass') ||
+                        document.querySelector('input[type="password"], #password');
                     
-                    if (passInputs.length === 0) {
+                    if (!passInput) {
                         if (window.AndroidBridge && window.AndroidBridge.onAutoLoginSubmitted) {
                             window.AndroidBridge.onAutoLoginSubmitted(false);
                         }
-                        return; // Not on a login page
+                        return; // Not a login page
                     }
                     
-                    // Check for captcha
-                    var captchaImgs = document.querySelectorAll('img[src*="captcha" i], img[src*="security" i], img[id*="captcha" i], img[class*="captcha" i]');
-                    var captchaInputs = document.querySelectorAll('input[name*="captcha" i], input[name*="security" i], input[id*="captcha" i]');
+                    // 2. Check for captcha
+                    var captchaImgs = document.querySelectorAll('img[src*="captcha" i], img[src*="security" i], img[id*="captcha" i], img[id*="edCodeImage" i]');
+                    var captchaInput = document.getElementById('edCode') ||
+                        document.querySelector('input[name*="captcha" i], input[name*="security" i]');
                     
                     var isCaptchaPresent = false;
                     for (var i = 0; i < captchaImgs.length; i++) {
                         var img = captchaImgs[i];
-                        if (img.offsetParent !== null && img.offsetWidth > 10 && img.offsetHeight > 10) {
+                        if (img.offsetWidth > 10 && img.offsetHeight > 10 || img.offsetParent !== null) {
                             isCaptchaPresent = true;
                             break;
                         }
                     }
-                    if (!isCaptchaPresent && captchaInputs.length > 0) {
-                        for (var j = 0; j < captchaInputs.length; j++) {
-                            if (captchaInputs[j].offsetParent !== null) {
-                                isCaptchaPresent = true;
-                                break;
-                            }
+                    if (!isCaptchaPresent && captchaInput) {
+                        var isVisible = (captchaInput.offsetParent !== null || window.getComputedStyle(captchaInput).display !== 'none');
+                        if (isVisible && !captchaInput.disabled && !captchaInput.readOnly) {
+                            isCaptchaPresent = true;
                         }
                     }
                     
@@ -51,16 +52,7 @@ object SessScriptInjector {
                         }
                     }
                     
-                    var userInput = null;
-                    for (var k = 0; k < userInputs.length; k++) {
-                        var el = userInputs[k];
-                        if (el.offsetParent !== null && !el.readOnly && !el.disabled) {
-                            userInput = el;
-                            break;
-                        }
-                    }
-                    
-                    var passInput = passInputs[0];
+                    // 3. Fill Credentials
                     if (userInput && passInput) {
                         userInput.focus();
                         userInput.value = "$safeUser";
@@ -77,20 +69,32 @@ object SessScriptInjector {
                         }
                         
                         if ($autoSubmit) {
-                            setTimeout(function() {
-                                var submitBtn = document.querySelector('#edEnter, input[type="submit"], button[type="submit"], input[value*="ورود"], input[value*="login" i]');
-                                if (submitBtn && submitBtn.offsetParent !== null) {
+                            // In SESS, Login.js defines Save() which hashes password with _RKey and calls MakeMember
+                            var submitAction = function() {
+                                if (typeof window.Save === 'function') {
+                                    window.Save();
+                                    return true;
+                                }
+                                var submitBtn = document.getElementById('edEnter') ||
+                                    document.querySelector('input[type="submit"], button[type="submit"], input[value*="ورود"], input[value*="login" i]');
+                                if (submitBtn) {
                                     submitBtn.click();
-                                } else {
-                                    var form = passInput.form || (userInput && userInput.form);
-                                    if (form) {
-                                        form.submit();
-                                    }
+                                    return true;
                                 }
+                                var form = passInput.form || (userInput && userInput.form);
+                                if (form) {
+                                    form.submit();
+                                    return true;
+                                }
+                                return false;
+                            };
+
+                            setTimeout(function() {
+                                var submitted = submitAction();
                                 if (window.AndroidBridge && window.AndroidBridge.onAutoLoginSubmitted) {
-                                    window.AndroidBridge.onAutoLoginSubmitted(true);
+                                    window.AndroidBridge.onAutoLoginSubmitted(submitted);
                                 }
-                            }, 50);
+                            }, 120);
                         }
                     }
                 } catch (e) {
@@ -151,11 +155,37 @@ object SessScriptInjector {
                             };
                         }
 
-                        if (typeof window.event === 'undefined') {
-                            window.event = null;
+                        // Polyfill PerformStd if not present
+                        if (typeof window.PerformStd !== 'function') {
+                            window.PerformStd = function(act) {
+                                if (typeof window.Perform === 'function') {
+                                    window.Perform(act);
+                                } else {
+                                    var ch = document.getElementById('Channel');
+                                    if (ch && document.forms.length > 0) {
+                                        ch.value = 'Act=' + act + ';';
+                                        document.forms[0].submit();
+                                    }
+                                }
+                            };
                         }
-                        document.addEventListener('mousedown', function(e) { window.event = e; }, true);
-                        document.addEventListener('keydown', function(e) { window.event = e; }, true);
+                    }
+
+                    // Detect SESS Session Expiration (ErrorResetInfo screen)
+                    var isExpiredPage = document.title === 'ErrorResetInfo' ||
+                        document.querySelector('form[action*="ErrorResetInfo" i]') !== null ||
+                        (document.body && document.body.innerText && document.body.innerText.indexOf('خروج خودکار کاربران توسط سیستم') !== -1);
+                    if (isExpiredPage) {
+                        if (window.AndroidBridge && window.AndroidBridge.logEvent) {
+                            window.AndroidBridge.logEvent('SESSION_EXPIRED', 'صفحه انقضای نشست (ErrorResetInfo) شناسایی شد', window.location.href);
+                        }
+                        var edCopy = document.getElementById('edCopy');
+                        if (edCopy) {
+                            edCopy.click();
+                        } else {
+                            window.location.href = '/sess/Script/Logout.aspx';
+                        }
+                        return;
                     }
 
                     // 2. SfxWeb Drawer helper
@@ -544,18 +574,20 @@ object SessScriptInjector {
         return """
             (function() {
                 try {
-                    var target = '/sess/keepalive';
-                    fetch(target, { method: 'GET', credentials: 'include', cache: 'no-cache' })
+                    // SESS official heartbeat endpoint used in Gnr.js
+                    var target = '/sess/Script/AjaxEnvironment.aspx?Act=Date';
+                    fetch(target, { method: 'POST', credentials: 'include', cache: 'no-cache' })
                         .then(function(res) {
+                            var isOk = res && (res.status === 200 || res.ok);
                             if (window.AndroidBridge && window.AndroidBridge.onHeartbeatAck) {
-                                window.AndroidBridge.onHeartbeatAck(true);
+                                window.AndroidBridge.onHeartbeatAck(isOk);
                             }
                         })
                         .catch(function(err) {
                             fetch(window.location.href, { method: 'HEAD', credentials: 'include', cache: 'no-cache' })
-                                .then(function() {
+                                .then(function(r) {
                                     if (window.AndroidBridge && window.AndroidBridge.onHeartbeatAck) {
-                                        window.AndroidBridge.onHeartbeatAck(true);
+                                        window.AndroidBridge.onHeartbeatAck(r.status === 200 || r.ok);
                                     }
                                 })
                                 .catch(function() {

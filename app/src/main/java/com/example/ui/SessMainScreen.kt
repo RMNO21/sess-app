@@ -361,11 +361,8 @@ fun SessMainScreen(
                             loadUrl(sessionState.currentUrl)
                         }
                     },
-                    update = { webView ->
-                        val shouldShow = !sessionState.isDashboardVisible
-                        webView.visibility = if (shouldShow) android.view.View.VISIBLE else android.view.View.GONE
-                    },
-                    modifier = if (!sessionState.isDashboardVisible) Modifier.fillMaxSize().testTag("sess_webview") else Modifier.size(0.dp)
+                    update = { _ -> },
+                    modifier = Modifier.fillMaxSize().testTag("sess_webview")
                 )
 
                 // Native Launch Dashboard

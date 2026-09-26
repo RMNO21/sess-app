@@ -181,6 +181,45 @@ class SessViewModel(application: Application) : AndroidViewModel(application) {
         return defaultUa.replace("; wv", "").replace(Regex("Version/\\d+\\.\\d+\\s*"), "")
     }
 
+    fun runResilientActionScript(webView: WebView, script: String) {
+        val safeScript = script
+            .replace("\\", "\\\\")
+            .replace("\"", "\\\"")
+            .replace("\n", "\\n")
+            .replace("\r", "\\r")
+        val wrapped = """
+            (function() {
+                var code = "$safeScript";
+                var attempts = 0;
+                function exec() {
+                    attempts++;
+                    try {
+                        if (typeof window.Perform === 'function' || typeof window.PerformStd === 'function' || document.getElementById('Channel')) {
+                            eval(code);
+                            return;
+                        }
+                        for (var i = 0; i < window.frames.length; i++) {
+                            var f = window.frames[i];
+                            try {
+                                if (typeof f.Perform === 'function' || typeof f.PerformStd === 'function' || (f.document && f.document.getElementById('Channel'))) {
+                                    f.eval(code);
+                                    return;
+                                }
+                            } catch(err) {}
+                        }
+                        eval(code);
+                    } catch(e) {
+                        if (attempts < 8) {
+                            setTimeout(exec, 250);
+                        }
+                    }
+                }
+                exec();
+            })();
+        """.trimIndent()
+        webView.evaluateJavascript(wrapped, null)
+    }
+
     fun executeQuickLink(link: QuickLink, webView: WebView) {
         addDebugLog("QUICKLINK_RUN", "باز کردن میان‌بر: ${link.title}", "URL: ${link.url}, Action: ${link.actionScript}")
         if (link.actionScript.isNotBlank()) {
@@ -198,7 +237,7 @@ class SessViewModel(application: Application) : AndroidViewModel(application) {
             val currentUrl = _sessionState.value.currentUrl
             val matchesDomain = currentUrl.contains("sess.shirazu.ac.ir") && !currentUrl.contains("Logout", ignoreCase = true)
             if (matchesDomain) {
-                webView.evaluateJavascript(link.actionScript, null)
+                runResilientActionScript(webView, link.actionScript)
             } else {
                 webView.loadUrl(link.url.ifBlank { "https://sess.shirazu.ac.ir" })
             }
@@ -328,7 +367,7 @@ class SessViewModel(application: Application) : AndroidViewModel(application) {
             val currentUrl = _sessionState.value.currentUrl
             val isAlreadyOnSess = currentUrl.contains("sess.shirazu.ac.ir") && !currentUrl.contains("Logout", ignoreCase = true)
             if (isAlreadyOnSess) {
-                webView.evaluateJavascript(shortcut.actionScript, null)
+                runResilientActionScript(webView, shortcut.actionScript)
             } else {
                 webView.loadUrl(shortcut.targetUrl.ifBlank { "https://sess.shirazu.ac.ir" })
             }
@@ -352,7 +391,7 @@ class SessViewModel(application: Application) : AndroidViewModel(application) {
         val currentUrl = _sessionState.value.currentUrl
         val isAlreadyOnSess = currentUrl.contains("sess.shirazu.ac.ir") && !currentUrl.contains("Logout", ignoreCase = true)
         if (isAlreadyOnSess) {
-            webView.evaluateJavascript(item.script, null)
+            runResilientActionScript(webView, item.script)
         } else {
             webView.loadUrl("https://sess.shirazu.ac.ir")
         }
@@ -371,10 +410,10 @@ class SessViewModel(application: Application) : AndroidViewModel(application) {
                 )
             }
             viewModelScope.launch {
-                delay(500)
-                webView.evaluateJavascript(pendingScript, null)
+                delay(600)
+                runResilientActionScript(webView, pendingScript)
             }
-        } else if (!pendingUrl.isNullOrBlank() && !pendingUrl.equals("https://sess.shirazu.ac.ir", ignoreCase = true) && !pendingUrl.contains("login", ignoreCase = true)) {
+        } else if (!pendingUrl.isNullOrBlank() && !pendingUrl.equals("https://sess.shirazu.ac.ir", ignoreCase = true) && !pendingUrl.contains("login", ignoreCase = true) && !pendingUrl.contains("Start.aspx", ignoreCase = true)) {
             addDebugLog("AUTO_RESUME", "بازیابی خودکار نشست و مقصد: بارگذاری آدرس پس از تایید ورود", pendingUrl)
             _sessionState.update {
                 it.copy(
@@ -482,11 +521,16 @@ class SessViewModel(application: Application) : AndroidViewModel(application) {
         val creds = credentials.value
         val isLoginPageCandidate = creds.isSaved && creds.isAutoLoginEnabled && creds.username.isNotBlank() && url.contains("sess.shirazu.ac.ir")
 
-        // Auto-recovery check: If redirected to logout or login unexpectedly, preserve last user action
-        if (url.contains("Logout.aspx", ignoreCase = true) || (url.contains("sess.shirazu.ac.ir") && url.contains("login", ignoreCase = true))) {
+        // Auto-recovery check: If redirected to logout, error reset, or start page unexpectedly, preserve last user action
+        val isSessionLogoutUrl = url.contains("Logout.aspx", ignoreCase = true) ||
+                url.contains("ErrorResetInfo", ignoreCase = true) ||
+                url.contains("Start.aspx", ignoreCase = true) ||
+                (url.contains("sess.shirazu.ac.ir") && url.contains("login", ignoreCase = true))
+
+        if (isSessionLogoutUrl) {
             if (_sessionState.value.pendingActionScript == null && !lastUserActionScript.isNullOrBlank()) {
                 _sessionState.update { it.copy(pendingActionScript = lastUserActionScript) }
-                addDebugLog("SESSION_RECOVERY", "تشخیص خروج ناخواسته از نشست؛ ذخیره اسکریپت برای اجرای خودکار پس از ورود مجدد", lastUserActionScript ?: "")
+                addDebugLog("SESSION_RECOVERY", "تشخیص خروج ناخواسته یا انقضای نشست؛ ذخیره اسکریپت برای اجرای خودکار پس از ورود مجدد", lastUserActionScript ?: "")
             }
         }
 
@@ -621,6 +665,17 @@ class SessViewModel(application: Application) : AndroidViewModel(application) {
 
     fun onTitleReceived(title: String) {
         _sessionState.update { it.copy(pageTitle = title) }
+        if (title.contains("ErrorResetInfo", ignoreCase = true)) {
+            addDebugLog("SESSION_RECOVERY", "تشخیص صفحه انقضای نشست (ErrorResetInfo)؛ شروع ورود خودکار و هدایت مجدد")
+            if (_sessionState.value.pendingActionScript == null && !lastUserActionScript.isNullOrBlank()) {
+                _sessionState.update { it.copy(pendingActionScript = lastUserActionScript) }
+            }
+            webViewRef?.let { webView ->
+                webView.post {
+                    webView.loadUrl("https://sess.shirazu.ac.ir/Sess/Start.aspx")
+                }
+            }
+        }
     }
 
     fun onPageError(error: String) {
